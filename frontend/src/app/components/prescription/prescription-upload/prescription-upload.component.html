@@ -1,0 +1,259 @@
+<div class="prescription-container">
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" [routerLink]="['/dashboard']">
+        <i class="fas fa-pills me-2"></i>PharmaERP
+      </a>
+      <span class="navbar-text text-white">
+        <i class="fas fa-file-prescription me-2"></i>AI Prescription Analysis
+      </span>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <button class="btn btn-outline-primary me-3" (click)="goBack()">
+          <i class="fas fa-arrow-left me-2"></i>Back
+        </button>
+        <h2 class="d-inline-block mb-0">AI-Powered Prescription Analysis</h2>
+        <p class="text-muted mt-2">Upload a prescription image to automatically extract medicines and find alternatives</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Upload Section -->
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-4">
+            <h5 class="card-title mb-3">
+              <i class="fas fa-cloud-upload-alt me-2"></i>Upload Prescription
+            </h5>
+
+            <!-- File Upload Area -->
+            <div
+              class="upload-area"
+              [class.has-file]="selectedFile"
+              (dragover)="onDragOver($event)"
+              (drop)="onDrop($event)"
+              *ngIf="!imagePreview">
+              <i class="fas fa-file-medical fa-3x text-primary mb-3"></i>
+              <p class="mb-2">Drag & drop prescription image here</p>
+              <p class="text-muted small mb-3">or</p>
+              <label class="btn btn-primary">
+                <i class="fas fa-folder-open me-2"></i>Browse Files
+                <input
+                  type="file"
+                  accept="image/*"
+                  (change)="onFileSelected($event)"
+                  hidden>
+              </label>
+              <p class="text-muted small mt-3 mb-0">
+                Supported: JPG, PNG, GIF (Max 5MB)
+              </p>
+            </div>
+
+            <!-- Image Preview -->
+            <div *ngIf="imagePreview" class="preview-container">
+              <div class="position-relative">
+                <img [src]="imagePreview" alt="Prescription Preview" class="img-fluid rounded">
+                <button
+                  class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2"
+                  (click)="removeFile()"
+                  *ngIf="!analyzing">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <div class="mt-3">
+                <p class="mb-2"><strong>File:</strong> {{ selectedFile?.name }}</p>
+                <p class="mb-0"><strong>Size:</strong> {{ (selectedFile!.size / 1024).toFixed(2) }} KB</p>
+              </div>
+            </div>
+
+            <!-- Analyze Button -->
+            <div class="d-grid mt-3" *ngIf="selectedFile && !showResults">
+              <button
+                class="btn btn-success btn-lg"
+                (click)="analyzePrescription()"
+                [disabled]="analyzing">
+                <span *ngIf="analyzing" class="spinner-border spinner-border-sm me-2"></span>
+                <i *ngIf="!analyzing" class="fas fa-brain me-2"></i>
+                {{ analyzing ? 'Analyzing with AI...' : 'Analyze Prescription' }}
+              </button>
+            </div>
+
+            <!-- Upload New Button -->
+            <div class="d-grid mt-3" *ngIf="showResults">
+              <button
+                class="btn btn-primary"
+                (click)="removeFile()">
+                <i class="fas fa-upload me-2"></i>Upload New Prescription
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Processing Info -->
+        <div class="card border-0 shadow-sm mt-3" *ngIf="analyzing">
+          <div class="card-body">
+            <h6 class="mb-3">
+              <i class="fas fa-cog fa-spin me-2"></i>AI Processing Steps
+            </h6>
+            <ul class="list-unstyled mb-0">
+              <li class="mb-2">
+                <i class="fas fa-check-circle text-success me-2"></i>
+                Extracting text using OCR...
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-spinner fa-spin text-primary me-2"></i>
+                Identifying medicines with AI...
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-circle text-muted me-2"></i>
+                Matching with inventory...
+              </li>
+              <li>
+                <i class="fas fa-circle text-muted me-2"></i>
+                Suggesting alternatives...
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Section -->
+      <div class="col-lg-7" *ngIf="showResults && analysisResult">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-4">
+            <h5 class="card-title mb-3">
+              <i class="fas fa-check-circle text-success me-2"></i>Analysis Results
+            </h5>
+
+            <!-- Extracted Text -->
+            <div class="mb-4">
+              <h6 class="text-muted mb-2">Extracted Text:</h6>
+              <div class="alert alert-light">
+                <small>{{ analysisResult.extractedText || 'No text extracted' }}</small>
+              </div>
+            </div>
+
+            <!-- Identified Medicines -->
+            <div class="mb-4" *ngIf="analysisResult.medicines.length > 0">
+              <h6 class="mb-3">
+                <i class="fas fa-pills me-2"></i>Identified Medicines ({{ analysisResult.medicines.length }})
+              </h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Medicine</th>
+                      <th>Dosage</th>
+                      <th>Frequency</th>
+                      <th>Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let med of analysisResult.medicines">
+                      <td><strong>{{ med.medicineName }}</strong></td>
+                      <td>{{ med.dosage || '-' }}</td>
+                      <td>{{ med.frequency || '-' }}</td>
+                      <td>{{ med.duration || '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Inventory Matches -->
+            <div *ngIf="analysisResult.matches.length > 0">
+              <h6 class="mb-3">
+                <i class="fas fa-search me-2"></i>Inventory Matches & Alternatives
+              </h6>
+
+              <div class="accordion" id="matchesAccordion">
+                <div class="accordion-item mb-2" *ngFor="let match of analysisResult.matches; let i = index">
+                  <h2 class="accordion-header">
+                    <button
+                      class="accordion-button collapsed"
+                      type="button"
+                      [attr.data-bs-toggle]="'collapse'"
+                      [attr.data-bs-target]="'#collapse' + i">
+                      <strong>{{ match.extractedName }}</strong>
+                      <span [class]="getConfidenceBadgeClass(match.confidence)" class="ms-2">
+                        {{ match.confidence }} confidence
+                      </span>
+                    </button>
+                  </h2>
+                  <div
+                    [id]="'collapse' + i"
+                    class="accordion-collapse collapse"
+                    [attr.data-bs-parent]="'#matchesAccordion'">
+                    <div class="accordion-body">
+                      <!-- Exact Match -->
+                      <div *ngIf="match.matchedProduct" class="mb-3">
+                        <h6 class="text-success">
+                          <i class="fas fa-check-circle me-2"></i>Exact Match Found
+                        </h6>
+                        <div class="card bg-success bg-opacity-10 border-success">
+                          <div class="card-body">
+                            <p class="mb-1"><strong>{{ match.matchedProduct.ProductName }}</strong></p>
+                            <p class="mb-1 text-muted small">{{ match.matchedProduct.Composition }}</p>
+                            <p class="mb-0">
+                              <span class="badge bg-success">Stock: {{ match.matchedProduct.StockQty }}</span>
+                              <span class="badge bg-primary ms-1">₹{{ match.matchedProduct.MRP }}</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Alternatives -->
+                      <div *ngIf="match.alternatives.length > 0">
+                        <h6 class="text-primary">
+                          <i class="fas fa-exchange-alt me-2"></i>
+                          {{ match.matchedProduct ? 'Other Options' : 'Available Alternatives' }} ({{ match.alternatives.length }})
+                        </h6>
+                        <div class="list-group">
+                          <div
+                            class="list-group-item list-group-item-action"
+                            *ngFor="let alt of match.alternatives">
+                            <div class="d-flex justify-content-between align-items-center">
+                              <div>
+                                <p class="mb-1"><strong>{{ alt.ProductName }}</strong></p>
+                                <p class="mb-0 text-muted small">{{ alt.Composition }}</p>
+                              </div>
+                              <div class="text-end">
+                                <span class="badge bg-info">{{ alt.StockQty }} units</span><br>
+                                <span class="text-primary"><strong>₹{{ alt.MRP }}</strong></span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- No Matches -->
+                      <div *ngIf="!match.matchedProduct && match.alternatives.length === 0">
+                        <div class="alert alert-warning mb-0">
+                          <i class="fas fa-exclamation-triangle me-2"></i>
+                          No matching products found in inventory
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- No Medicines Found -->
+            <div *ngIf="analysisResult.medicines.length === 0" class="alert alert-warning">
+              <i class="fas fa-exclamation-circle me-2"></i>
+              No medicines could be identified from the prescription. Please ensure the image is clear and readable.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

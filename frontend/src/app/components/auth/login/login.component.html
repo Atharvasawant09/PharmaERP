@@ -1,0 +1,99 @@
+<div class="login-container">
+  <div class="container">
+    <div class="row justify-content-center align-items-center min-vh-100">
+      <div class="col-md-5 col-lg-4">
+        <div class="card shadow-lg border-0">
+          <div class="card-body p-5">
+            <!-- Logo & Title -->
+            <div class="text-center mb-4">
+              <div class="logo-icon mb-3">
+                <i class="fas fa-pills fa-3x text-primary"></i>
+              </div>
+              <h3 class="fw-bold mb-1">PharmaERP</h3>
+              <p class="text-muted small">Sales & Prescription Intelligence</p>
+            </div>
+
+            <!-- Login Form -->
+            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+              <!-- Email Field -->
+              <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="fas fa-envelope text-muted"></i>
+                  </span>
+                  <input
+                    type="email"
+                    class="form-control"
+                    id="email"
+                    formControlName="email"
+                    placeholder="Enter your email"
+                    [class.is-invalid]="email?.invalid && email?.touched"
+                  />
+                </div>
+                <div class="invalid-feedback d-block" *ngIf="email?.invalid && email?.touched">
+                  <small *ngIf="email?.errors?.['required']">Email is required</small>
+                  <small *ngIf="email?.errors?.['email']">Enter a valid email</small>
+                </div>
+              </div>
+
+              <!-- Password Field -->
+              <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="fas fa-lock text-muted"></i>
+                  </span>
+                  <input
+                    [type]="showPassword ? 'text' : 'password'"
+                    class="form-control"
+                    id="password"
+                    formControlName="password"
+                    placeholder="Enter your password"
+                    [class.is-invalid]="password?.invalid && password?.touched"
+                  />
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    (click)="togglePasswordVisibility()"
+                  >
+                    <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
+                  </button>
+                </div>
+                <div class="invalid-feedback d-block" *ngIf="password?.invalid && password?.touched">
+                  <small *ngIf="password?.errors?.['required']">Password is required</small>
+                  <small *ngIf="password?.errors?.['minlength']">
+                    Password must be at least 6 characters
+                  </small>
+                </div>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="d-grid mb-3">
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-lg"
+                  [disabled]="loading"
+                >
+                  <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+                  <span *ngIf="!loading">
+                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                  </span>
+                  <span *ngIf="loading">Logging in...</span>
+                </button>
+              </div>
+            </form>
+
+            <!-- Test Credentials Info -->
+            <div class="alert alert-info small mb-0" role="alert">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Test Login:</strong><br>
+              Email: {{ testEmail }}<br>
+              Password: {{ testPassword }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

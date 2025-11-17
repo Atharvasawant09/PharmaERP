@@ -1,0 +1,33 @@
+# ============================================
+# Angular Frontend .gitignore
+# ============================================
+
+# Node Modules
+node_modules/
+
+# Build Output
+dist/
+.angular/
+out-tsc/
+
+# Environment Files (if any local overrides)
+src/environments/*.local.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+*.spec.ts.snap
+
+# Cache
+.angular/cache/
+.sass-cache/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

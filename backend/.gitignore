@@ -1,0 +1,37 @@
+# ============================================
+# Backend Specific .gitignore
+# ============================================
+
+# Environment Variables (CRITICAL)
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Node Modules
+node_modules/
+
+# Build Output
+dist/
+build/
+
+# Uploads (Prescription Images)
+uploads/*
+!uploads/.gitkeep
+!uploads/prescriptions/.gitkeep
+
+# Logs
+logs/
+*.log
+
+# TypeScript Cache
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary Files
+*.tmp
+tmp/

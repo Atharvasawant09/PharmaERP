@@ -1,0 +1,304 @@
+<div class="sales-history-container">
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" [routerLink]="['/dashboard']">
+        <i class="fas fa-pills me-2"></i>PharmaERP
+      </a>
+      <span class="navbar-text text-white">
+        <i class="fas fa-history me-2"></i>Sales History
+      </span>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <button class="btn btn-outline-primary me-3" (click)="goBack()">
+          <i class="fas fa-arrow-left me-2"></i>Back
+        </button>
+        <h2 class="d-inline-block mb-0">Sales History & Reports</h2>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4" *ngIf="!loading">
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <p class="text-muted mb-1 small">Total Transactions</p>
+                <h4 class="mb-0">{{ totalSales || 0 }}</h4>
+              </div>
+              <div class="stat-icon bg-primary">
+                <i class="fas fa-receipt"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <p class="text-muted mb-1 small">Total Revenue</p>
+                <h4 class="mb-0 text-success">₹{{ (totalRevenue || 0).toFixed(2) }}</h4>
+              </div>
+              <div class="stat-icon bg-success">
+                <i class="fas fa-rupee-sign"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-2">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-2">
+            <p class="text-muted mb-1 small">Cash</p>
+            <h6 class="mb-0">₹{{ (cashSales || 0).toFixed(2) }}</h6>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-2">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-2">
+            <p class="text-muted mb-1 small">Card</p>
+            <h6 class="mb-0">₹{{ (cardSales || 0).toFixed(2) }}</h6>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-2">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-2">
+            <p class="text-muted mb-1 small">UPI</p>
+            <h6 class="mb-0">₹{{ (upiSales || 0).toFixed(2) }}</h6>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <label class="form-label small">Search</label>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Customer, Mobile, Payment..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()">
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label small">Payment Type</label>
+        <select
+          class="form-select"
+          [(ngModel)]="filterPaymentType"
+          (ngModelChange)="onFilterChange()">
+          <option value="all">All</option>
+          <option value="cash">Cash</option>
+          <option value="card">Card</option>
+          <option value="upi">UPI</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label small">Start Date</label>
+        <input
+          type="date"
+          class="form-control"
+          [(ngModel)]="startDate"
+          (ngModelChange)="onFilterChange()">
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label small">End Date</label>
+        <input
+          type="date"
+          class="form-control"
+          [(ngModel)]="endDate"
+          (ngModelChange)="onFilterChange()">
+      </div>
+
+      <div class="col-md-3 d-flex align-items-end">
+        <button
+          class="btn btn-success w-100"
+          (click)="exportToCSV()"
+          [disabled]="filteredSales.length === 0">
+          <i class="fas fa-file-excel me-2"></i>Export to CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="row" *ngIf="loading">
+      <div class="col-12 text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3 text-muted">Loading sales history...</p>
+      </div>
+    </div>
+
+    <!-- Sales Table -->
+    <div class="row" *ngIf="!loading">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Customer</th>
+                    <th>Mobile</th>
+                    <th>Payment Type</th>
+                    <th class="text-end">Amount</th>
+                    <th class="text-center" style="width: 120px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let sale of filteredSales">
+                    <td>{{ formatDate(sale.SalesDate) }}</td>
+                    <td><strong>{{ sale.CustomerName }}</strong></td>
+                    <td>{{ sale.Mobile || '-' }}</td>
+                    <td>
+                      <span [class]="getPaymentBadgeClass(sale.PaymentType)">
+                        {{ sale.PaymentType }}
+                      </span>
+                    </td>
+                    <td class="text-end">
+                      <strong>₹{{ (sale.TotalAmount || 0).toFixed(2) }}</strong>
+                    </td>
+                    <td class="text-center">
+                      <button
+                        class="btn btn-sm btn-primary me-1"
+                        (click)="viewSaleDetails(sale)"
+                        title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button
+                        class="btn btn-sm btn-danger"
+                        (click)="downloadInvoice(sale)"
+                        title="Download PDF Invoice">
+                        <i class="fas fa-file-pdf"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- Empty State -->
+              <div class="text-center py-5" *ngIf="filteredSales.length === 0">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No sales found for selected filters</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sale Details Modal -->
+<div class="modal fade show d-block" *ngIf="showDetailsModal" [class.show]="showDetailsModal">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="fas fa-receipt me-2"></i>Sale Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeDetailsModal()"></button>
+      </div>
+
+      <!-- Modal Body with Data -->
+      <div class="modal-body" *ngIf="selectedSale && selectedSale.header">
+        <!-- Header Info -->
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Customer:</strong> {{ selectedSale.header.CustomerName || 'N/A' }}</p>
+            <p class="mb-1"><strong>Mobile:</strong> {{ selectedSale.header.Mobile || '-' }}</p>
+            <p class="mb-0"><strong>Email:</strong> {{ selectedSale.header.Email || '-' }}</p>
+          </div>
+          <div class="col-md-6 text-end">
+            <p class="mb-1"><strong>Date:</strong> {{ formatDate(selectedSale.header.SalesDate) }}</p>
+            <p class="mb-1">
+              <strong>Payment:</strong>
+              <span [class]="getPaymentBadgeClass(selectedSale.header.PaymentType)" class="ms-1">
+                {{ selectedSale.header.PaymentType }}
+              </span>
+            </p>
+            <p class="mb-0"><strong>Created By:</strong> {{ selectedSale.header.CreatedBy || 'System' }}</p>
+          </div>
+        </div>
+
+        <hr>
+
+        <!-- Items Table -->
+        <h6 class="mb-3">Items Purchased:</h6>
+        <div class="table-responsive" *ngIf="selectedSale.lines && selectedSale.lines.length > 0">
+          <table class="table table-sm table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>Product</th>
+                <th>Batch No</th>
+                <th class="text-center">Quantity</th>
+                <th class="text-end">Rate</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let line of selectedSale.lines">
+                <td><strong>{{ line.ProductName || 'N/A' }}</strong></td>
+                <td><span class="badge bg-secondary">{{ line.BatchNo || 'N/A' }}</span></td>
+                <td class="text-center">{{ line.Quantity || 0 }}</td>
+                <td class="text-end">₹{{ toNumber(line.Rate).toFixed(2) }}</td>
+                <td class="text-end"><strong>₹{{ toNumber(line.LineTotal).toFixed(2) }}</strong></td>
+              </tr>
+            </tbody>
+            <tfoot class="table-light">
+              <tr>
+                <td colspan="4" class="text-end"><strong>Grand Total:</strong></td>
+                <td class="text-end">
+                  <strong class="text-success fs-5">₹{{ toNumber(selectedSale.header.TotalAmount).toFixed(2) }}</strong>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- No Items Message -->
+        <div class="alert alert-warning" *ngIf="!selectedSale.lines || selectedSale.lines.length === 0">
+          <i class="fas fa-exclamation-circle me-2"></i>
+          No items found for this sale
+        </div>
+      </div>
+
+      <!-- Loading State for Modal -->
+      <div class="modal-body text-center py-5" *ngIf="!selectedSale || !selectedSale.header">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3 text-muted">Loading sale details...</p>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-success me-auto"
+          (click)="downloadCurrentInvoice()"
+          *ngIf="selectedSale && selectedSale.header">
+          <i class="fas fa-download me-2"></i>Download Invoice PDF
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="closeDetailsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="showDetailsModal"></div>

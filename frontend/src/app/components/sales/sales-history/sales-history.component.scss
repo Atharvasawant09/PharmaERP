@@ -1,0 +1,40 @@
+.sales-history-container {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.table {
+  thead {
+    th {
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+  }
+
+  tbody {
+    tr {
+      &:hover {
+        background-color: #f8f9fa;
+      }
+    }
+  }
+}
+
+.modal {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+}
