@@ -6,75 +6,92 @@ export async function analyzePrescription(req: Request, res: Response): Promise<
     if (!req.file) {
       res.status(400).json({
         success: false,
-        message: 'No image file uploaded'
+        message: 'No image file uploaded',
+        hint: 'Please upload a clear image of the prescription'
       });
       return;
     }
 
     const imagePath = req.file.path;
-    console.log('📋 Analyzing prescription:', imagePath);
-
-    // Step 1: Extract text using OCR
-    const extractedText = await aiService.extractTextFromImage(imagePath);
-
-    if (!extractedText || extractedText.trim().length < 10) {
-      res.status(400).json({
-        success: false,
-        message: 'Could not extract readable text from image. Please ensure the image is clear.'
-      });
-      aiService.deleteUploadedFile(imagePath);
-      return;
-    }
-
-    // Step 2: Identify medicines using AI
-    const medicines = await aiService.identifyMedicines(extractedText);
-
-    if (medicines.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: 'No medicines identified in the prescription'
-      });
-      aiService.deleteUploadedFile(imagePath);
-      return;
-    }
-
-    // Step 3: Match with inventory and suggest alternatives
-    const matches = await aiService.matchMedicinesWithInventory(medicines);
-
-    // Step 4: Enhance alternatives with AI ranking
-    for (const match of matches) {
-      if (match.alternatives.length > 0) {
-        match.alternatives = await aiService.suggestAlternatives(
-          match.extractedName,
-          match.alternatives
-        );
+    console.log(`📁 Processing prescription: ${imagePath}`);
+    
+    try {
+      // STEP 1: Extract text from image
+      console.log('🔍 Step 1: Extracting text from image...');
+      const extractedText = await aiService.extractTextFromImage(imagePath);
+      
+      if (!extractedText || extractedText.length < 10) {
+        aiService.deleteUploadedFile(imagePath);
+        res.status(400).json({
+          success: false,
+          message: 'Could not extract readable text from image',
+          hint: 'Please ensure the prescription is clearly visible and well-lit. Typed prescriptions work best.',
+          extractedText: extractedText
+        });
+        return;
       }
-    }
-
-    // Clean up uploaded file
-    aiService.deleteUploadedFile(imagePath);
-
-    res.json({
-      success: true,
-      message: 'Prescription analyzed successfully',
-      data: {
-        extractedText: extractedText,
-        medicines: medicines,
-        matches: matches
+      
+      // STEP 2: Identify medicines using AI
+      console.log('🤖 Step 2: Identifying medicines...');
+      const medicines = await aiService.identifyMedicines(extractedText);
+      
+      if (medicines.length === 0) {
+        aiService.deleteUploadedFile(imagePath);
+        res.status(200).json({
+          success: true,
+          message: 'No medicines could be identified',
+          hint: 'The image might be unclear or contain no medicine names. Try manual entry.',
+          data: {
+            extractedText: extractedText,
+            medicines: [],
+            matches: []
+          }
+        });
+        return;
       }
-    });
-
+      
+      // STEP 3: Match with inventory
+      console.log('📊 Step 3: Matching with inventory...');
+      const matches = await aiService.matchMedicinesWithInventory(medicines);
+      
+      // Cleanup uploaded file
+      aiService.deleteUploadedFile(imagePath);
+      
+      // Success response
+      res.json({
+        success: true,
+        message: `Successfully identified ${medicines.length} medicine(s)`,
+        data: {
+          extractedText: extractedText,
+          medicines: medicines,
+          matches: matches
+        }
+      });
+      
+    } catch (processingError: any) {
+      // Cleanup on processing error
+      aiService.deleteUploadedFile(imagePath);
+      
+      console.error('❌ Processing error:', processingError);
+      
+      res.status(500).json({
+        success: false,
+        message: processingError.message || 'Failed to analyze prescription',
+        hint: 'Try uploading a clearer image or use manual entry'
+      });
+    }
+    
   } catch (error) {
     console.error('❌ Prescription analysis error:', error);
     
-    // Clean up file on error
     if (req.file) {
       aiService.deleteUploadedFile(req.file.path);
     }
 
     res.status(500).json({
       success: false,
-      message: 'Failed to analyze prescription. Please try again.'
+      message: 'An unexpected error occurred',
+      hint: 'Please try again or contact support'
     });
   }
 }
