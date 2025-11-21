@@ -24,7 +24,34 @@ export class SalesEntryComponent implements OnInit {
   loading = false;
   submitting = false;
   showCustomerModal = false;  // ADD THIS
-  addingCustomer = false;     // ADD THIS
+  addingCustomer = false;   // ADD THIS
+  private readonly var: any;
+  Low_stock = 1;
+  private readonly var1: any;
+  sufficient_stock = 5;
+
+  isOutOfStock(stockQty:number | null| undefined):boolean{
+    return !stockQty || stockQty <=0;
+  }
+
+  isLowStock(stockQty:number | null| undefined):boolean{
+    if(this.isOutOfStock(stockQty))
+      return false;
+    return (stockQty as number)< this.sufficient_stock
+}
+
+isSufficeientStock(stockQty:number | null| undefined):boolean{
+  return (stockQty ?? 0)>= this.sufficient_stock
+}
+getStockBadgeClass(stockQty : number|null|undefined):string{
+  if(this.isOutOfStock(stockQty)){
+    return 'badge bg-secondary';
+  }
+  if(this.isLowStock(stockQty)){
+    return 'badge bg-danger';}
+
+  return 'badge bg-success';
+}
 
   constructor(
     private fb: FormBuilder,
@@ -72,7 +99,7 @@ export class SalesEntryComponent implements OnInit {
     this.productService.getAllProducts().subscribe({
       next: (response) => {
         if (response.success) {
-          this.products = response.data.filter(p => p.StockQty > 0);
+          this.products = response.data as Product[];
         }
         this.loading = false;
       },
@@ -123,14 +150,57 @@ export class SalesEntryComponent implements OnInit {
     }
   }
 
-  onQuantityChange(index: number): void {
-    const item = this.items.at(index);
-    const quantity = item.get('quantity')?.value || 0;
-    const rate = item.get('rate')?.value || 0;
-    item.patchValue({
-      lineTotal: quantity * rate
+  onSelectProduct(index:number,productId:string):void{
+    const product = this.products.find(p=>p.ProductId === productId);
+    if(!product) return ;
+
+    if(this.isOutOfStock(product.StockQty)){
+      this.toastr.warning("product cannot be seleted");
+
+      this.items.at(index).patchValue({
+        productId:null,
+        rate:0,
+        quantity:null,
+        lineTotal:0
+      }, {emitEvent:false});
+      return;
+    }
+
+    if (this.isLowStock(product.StockQty)){
+      this.toastr.info("Low stock for this product");
+    }
+
+    this.items.at(index).patchValue({
+      rate:product.MRP,
+      quantity:1,
+      lineTotal:product.MRP
     });
-    this.calculateTotal();
+
+
+  }
+
+  onQuantityChange(index: number): void {
+    const group = this.items.at(index);
+    const productId = group.get('productId')?.value as string | null;
+    if(!productId) return;
+
+    const product = this.products.find(p=>p.ProductId === productId);
+    if(!product) return;
+
+    let qty = Number(group.get('quantity')?.value||0);
+    if(qty<=0) qty=1;
+
+    if(qty > product.StockQty){
+      qty = product.StockQty;
+      this.toastr.warning(`only ${product.StockQty} unit(s) available`);
+    }
+
+    const rate = Number(group.get('rate')?.value || 0);
+    group.patchValue({
+      quantity:qty,
+      lineTotal: Number((qty  * rate).toFixed(2))
+    }, {emitEvent:false});
+    this.calculateTotal?.();
   }
 
   calculateTotal(): number {

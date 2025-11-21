@@ -15,6 +15,8 @@ import { ToastrService } from 'ngx-toastr';
   styleUrls: ['./product-list.component.scss']
 })
 export class ProductListComponent implements OnInit {
+  userRole: string = '';
+  currentUser: any = null;
   products: Product[] = [];
   filteredProducts: Product[] = [];
   loading = true;
@@ -27,8 +29,8 @@ export class ProductListComponent implements OnInit {
     private router: Router,
     private toastr: ToastrService
   ) {
-    const role = this.authService.getUserRole();
-    this.canModify = role === 'Admin' || role === 'Manager';
+    this.currentUser = this.authService.getCurrentUser();
+    this.userRole = this.authService.getUserRole() || '';
   }
 
   ngOnInit(): void {
@@ -53,23 +55,37 @@ export class ProductListComponent implements OnInit {
     });
   }
 
-  deleteProduct(product: any): void {
-  if (!confirm(`Are you sure you want to delete "${product.ProductName}"?`)) {
-    return;
-  }
-
-  this.productService.deleteProduct(product.ProductId).subscribe({
-    next: (response) => {
-      this.toastr.success('Product deleted successfully', 'Success');
-      this.loadProducts(); // Reload list
-    },
-    error: (error) => {
-      const errorMessage = error.error?.message || 'Failed to delete product';
-      this.toastr.error(errorMessage, 'Error');
+  /**
+   * Delete product by ID
+   */
+  deleteProduct(productId: string): void {
+    if (!this.canDeleteProducts()) {
+      this.toastr.error('You do not have permission to delete products', 'Access Denied');
+      return;
     }
-  });
-}
 
+    // Find the product to get its name for confirmation
+    const product = this.products.find(p => p.ProductId === productId);
+    if (!product) {
+      this.toastr.error('Product not found', 'Error');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete "${product.ProductName}"?`)) {
+      return;
+    }
+
+    this.productService.deleteProduct(productId).subscribe({
+      next: (response) => {
+        this.toastr.success('Product deleted successfully', 'Success');
+        this.loadProducts(); // Reload list
+      },
+      error: (error) => {
+        const errorMessage = error.error?.message || 'Failed to delete product';
+        this.toastr.error(errorMessage, 'Error');
+      }
+    });
+  }
 
   onSearchChange(): void {
     const term = this.searchTerm.toLowerCase();
@@ -110,5 +126,26 @@ export class ProductListComponent implements OnInit {
 
   logout(): void {
     this.authService.logout();
+  }
+
+  /**
+   * Check if user can create products
+   */
+  canCreateProducts(): boolean {
+    return ['Admin', 'Manager'].includes(this.userRole);
+  }
+
+  /**
+   * Check if user can edit products
+   */
+  canEditProducts(): boolean {
+    return ['Admin', 'Manager'].includes(this.userRole);
+  }
+
+  /**
+   * Check if user can delete products
+   */
+  canDeleteProducts(): boolean {
+    return this.userRole === 'Admin';
   }
 }

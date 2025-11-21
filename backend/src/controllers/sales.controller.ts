@@ -270,3 +270,70 @@ export async function getTodaySalesSummary(req: Request, res: Response): Promise
     });
   }
 }
+
+export async function deleteSale(req: Request, res: Response): Promise<void> {
+  const connection = await pool.getConnection();
+  
+  try {
+    const { id } = req.params;
+
+    await connection.beginTransaction();
+
+    // Check if sale exists
+    const [existingSales] = await connection.query<RowDataPacket[]>(
+      'SELECT SalesId FROM SalesHeader WHERE SalesId = ?',
+      [id]
+    );
+
+    if (existingSales.length === 0) {
+      await connection.rollback();
+      res.status(404).json({
+        success: false,
+        message: 'Sale not found'
+      });
+      return;
+    }
+
+    // Get sale line items to restore stock
+    const [saleLines] = await connection.query<RowDataPacket[]>(
+      'SELECT ProductId, Quantity FROM SalesLine WHERE SalesId = ?',
+      [id]
+    );
+
+    // Restore stock for each product
+    for (const line of saleLines) {
+      await connection.query(
+        'UPDATE Products SET StockQty = StockQty + ? WHERE ProductId = ?',
+        [line.Quantity, line.ProductId]
+      );
+    }
+
+    // Delete sale lines (will cascade delete if FK is set up properly)
+    await connection.query(
+      'DELETE FROM SalesLine WHERE SalesId = ?',
+      [id]
+    );
+
+    // Delete sale header
+    await connection.query(
+      'DELETE FROM SalesHeader WHERE SalesId = ?',
+      [id]
+    );
+
+    await connection.commit();
+
+    res.json({
+      success: true,
+      message: 'Sale deleted successfully and stock restored'
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error deleting sale:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete sale'
+    });
+  } finally {
+    connection.release();
+  }
+}

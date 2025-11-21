@@ -1,24 +1,27 @@
 import { Router } from 'express';
-import { 
-  createSale, 
-  getAllSales, 
-  getSaleById,
-  getTodaySalesSummary,
-  getWeeklySales,      // ADD THIS
-  getTopProducts        // ADD THIS
-} from '../controllers/sales.controller';
-import { authenticate, authorize } from '../middlewares/auth.middleware';
+import * as salesController from '../controllers/sales.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { authorizeRoles } from '../middlewares/role.middleware';
 
 const router = Router();
 
-// POST routes
-router.post('/', authenticate, authorize('Admin', 'SalesAgent', 'Manager'), createSale);
+router.use(authenticate);
 
-// GET routes - SPECIFIC FIRST, THEN DYNAMIC
-router.get('/summary/today', authenticate, getTodaySalesSummary);
-router.get('/weekly', authenticate, getWeeklySales);           // ADD THIS
-router.get('/top-products', authenticate, getTopProducts);    // ADD THIS
-router.get('/', authenticate, getAllSales);
-router.get('/:id', authenticate, getSaleById);
+// All authenticated users can create and view sales
+router.post('/', salesController.createSale);
+router.get('/', salesController.getAllSales);
+router.get('/weekly', salesController.getWeeklySales);
+router.get('/top-products', salesController.getTopProducts);
+
+// ✅ ADD THIS LINE:
+router.get('/summary/today', salesController.getTodaySalesSummary);
+
+router.get('/:id', salesController.getSaleById);
+
+// Only Admin can delete sales
+router.delete('/:id',
+  authorizeRoles(['Admin']),
+  salesController.deleteSale
+);
 
 export default router;

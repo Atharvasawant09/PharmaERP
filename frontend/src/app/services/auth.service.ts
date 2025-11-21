@@ -42,8 +42,27 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
-  getCurrentUser(): User | null {
-    return this.currentUserSubject.value;
+  /**
+   * Get current user from localStorage or BehaviorSubject
+   */
+  getCurrentUser(): any {
+    // First check BehaviorSubject
+    let user = this.currentUserSubject.value;
+
+    // If not in memory, check localStorage
+    if (!user) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          user = JSON.parse(userStr);
+          this.currentUserSubject.next(user);
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+
+    return user;
   }
 
   isAuthenticated(): boolean {
@@ -54,14 +73,28 @@ export class AuthService {
     return localStorage.getItem('token');
   }
 
+  /**
+   * Get user role
+   */
   getUserRole(): string | null {
     const user = this.getCurrentUser();
     return user ? user.role : null;
   }
 
+  /**
+   * Check if user has specific role
+   */
   hasRole(role: string): boolean {
     const userRole = this.getUserRole();
     return userRole === role;
+  }
+
+  /**
+   * Check if user has any of the specified roles
+   */
+  hasAnyRole(roles: string[]): boolean {
+    const userRole = this.getUserRole();
+    return userRole ? roles.includes(userRole) : false;
   }
 
   private setSession(token: string, user: User): void {

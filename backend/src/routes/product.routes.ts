@@ -1,27 +1,33 @@
 import { Router } from 'express';
-import {
-  getAllProducts,
-  getProductById,
-  createProduct,
-  updateProduct,
-  deleteProduct
-} from '../controllers/product.controller';
-import { authenticate, authorize } from '../middlewares/auth.middleware';
+import * as productController from '../controllers/product.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { authorizeRoles } from '../middlewares/role.middleware';
 
 const router = Router();
 
-// Public routes (require authentication)
-router.get('/', authenticate, getAllProducts);
-router.get('/:id', authenticate, getProductById);
+// All routes require authentication
+router.use(authenticate);
 
-// Protected routes (Admin/Manager only)
-router.post('/', authenticate, authorize('Admin', 'Manager'), createProduct);
-router.put('/:id', authenticate, authorize('Admin', 'Manager'), updateProduct);
-router.delete(
-  '/:id',
-  authenticate,
-  authorize('Admin', 'Manager'),
-  deleteProduct
+// GET routes - All authenticated users can view
+router.get('/', productController.getAllProducts);
+router.get('/:id', productController.getProductById);
+
+// POST - Only Admin and Manager can create products
+router.post('/', 
+  authorizeRoles(['Admin', 'Manager']),
+  productController.createProduct
+);
+
+// PUT - Only Admin and Manager can update products
+router.put('/:id', 
+  authorizeRoles(['Admin', 'Manager']),
+  productController.updateProduct
+);
+
+// DELETE - Only Admin can delete products
+router.delete('/:id', 
+  authorizeRoles(['Admin']),
+  productController.deleteProduct
 );
 
 export default router;

@@ -3,6 +3,15 @@ import pool from '../config/database';
 import { generateUUID } from '../utils/helpers';
 import { RowDataPacket } from 'mysql2';
 
+function clampMoney(v: any): number {
+  const n = Number(v);
+  if (isNaN(n) || n < 0) throw new Error("Invalid monetary value");
+  // Check max 2 decimals
+  if (!/^\d+(\.\d{1,2})?$/.test(String(v))) {
+    throw new Error("Value can have at most 2 decimal places");
+  }
+  return Number(n.toFixed(2));
+}
 // Get all products
 export async function getAllProducts(
   req: Request,
@@ -61,36 +70,23 @@ export async function getProductById(
 }
 
 // Create new product
-export async function createProduct(
-  req: Request,
-  res: Response
-): Promise<void> {
+export async function createProduct(req: Request, res: Response): Promise<void> {
   try {
-    const { productName, batchNo, expiryDate, composition, mrp, stockQty } =
-      req.body;
+    let { productName, batchNo, expiryDate, composition, mrp, stockQty } = req.body;
 
-    // Validate required fields
     if (!productName || !batchNo || !expiryDate || !mrp) {
-      res.status(400).json({
-        success: false,
-        message: 'Missing required fields'
-      });
+      res.status(400).json({ success: false, message: 'Missing required fields' });
       return;
     }
+
+  
+    mrp = clampMoney(mrp);
 
     const productId = generateUUID();
 
     await pool.query(
       'INSERT INTO Products (ProductId, ProductName, BatchNo, ExpiryDate, Composition, MRP, StockQty) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [
-        productId,
-        productName,
-        batchNo,
-        expiryDate,
-        composition || null,
-        mrp,
-        stockQty || 0
-      ]
+      [productId, productName, batchNo, expiryDate, composition || null, mrp, stockQty || 0]
     );
 
     res.status(201).json({
@@ -98,24 +94,22 @@ export async function createProduct(
       message: 'Product created successfully',
       data: { productId }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create product error:', error);
-    res.status(500).json({
+    res.status(400).json({
       success: false,
-      message: 'Internal server error'
+      message: error?.message || 'Internal server error'
     });
   }
 }
 
-// Update product
-export async function updateProduct(
-  req: Request,
-  res: Response
-): Promise<void> {
+export async function updateProduct(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
-    const { productName, batchNo, expiryDate, composition, mrp, stockQty } =
-      req.body;
+    let { productName, batchNo, expiryDate, composition, mrp, stockQty } = req.body;
+
+    
+    mrp = clampMoney(mrp);
 
     const [result]: any = await pool.query(
       'UPDATE Products SET ProductName = ?, BatchNo = ?, ExpiryDate = ?, Composition = ?, MRP = ?, StockQty = ? WHERE ProductId = ?',
@@ -123,25 +117,20 @@ export async function updateProduct(
     );
 
     if (result.affectedRows === 0) {
-      res.status(404).json({
-        success: false,
-        message: 'Product not found'
-      });
+      res.status(404).json({ success: false, message: 'Product not found' });
       return;
     }
 
-    res.json({
-      success: true,
-      message: 'Product updated successfully'
-    });
-  } catch (error) {
+    res.json({ success: true, message: 'Product updated successfully' });
+  } catch (error: any) {
     console.error('Update product error:', error);
-    res.status(500).json({
+    res.status(400).json({
       success: false,
-      message: 'Internal server error'
+      message: error?.message || 'Internal server error'
     });
   }
 }
+
 
 // Delete product (soft delete)
 export async function deleteProduct(

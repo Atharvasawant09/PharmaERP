@@ -32,7 +32,14 @@ export class ProductFormComponent implements OnInit {
       batchNo: ['', [Validators.required, Validators.maxLength(50)]],
       expiryDate: ['', Validators.required],
       composition: ['', Validators.maxLength(500)],
-      mrp: [0, [Validators.required, Validators.min(0.01)]],
+     mrp: [
+  0,
+  [
+    Validators.required,
+    Validators.min(0.01),
+    Validators.pattern(/^\d+(\.\d{1,2})?$/)
+  ]  
+],
       stockQty: [0, [Validators.required, Validators.min(0)]]
     });
   }
@@ -83,6 +90,8 @@ export class ProductFormComponent implements OnInit {
       this.markFormGroupTouched(this.productForm);
       return;
     }
+    const v = this.productForm.value;
+    v.mrp = Number(Number(v.mrp).toFixed(2))
 
     this.submitting = true;
     const formData = this.productForm.value;

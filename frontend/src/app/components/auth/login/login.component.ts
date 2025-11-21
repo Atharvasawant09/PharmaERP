@@ -18,8 +18,14 @@ export class LoginComponent {
   showPassword = false;
 
   // Test credentials for display
-  testEmail = 'admin@pharma.com';
-  testPassword = 'Admin@123';
+testEmail = `admin@pharma.com,
+manager@pharma.com,
+agent@pharma.com`;
+
+testPassword = `admin123,
+manager123,
+agent123`;
+
 
   constructor(
     private fb: FormBuilder,
